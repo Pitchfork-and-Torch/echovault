@@ -52,6 +52,22 @@ EchoVault v0.1.0 gate-0 kit: mission, legal rails, metadata schema, eval harness
 5. Prefer linking back to the permanent ship page when you fork or redistribute.
 6. This is education / public-goods work from an open marketplace - not legal advice and not a security guarantee.
 
+## Verify the kit
+
+The schema validator, eval harness, and monitor ship as fenced code blocks
+inside `tasks/**/deliverable.md`. A stdlib-only smoke test extracts them and
+checks the claims each leaf makes about itself (examples validate, the
+validator fails closed on habitat leaks, all five eval tracks run, the monitor
+fires on the synthetic stream). Python 3.10+, no network, no dependencies:
+
+```bash
+python3 tests/smoke_test.py
+```
+
+Expected: a line per check starting with `ok`, then `all checks passed` and
+exit code 0. Any `FAIL` line means a deliverable no longer does what its
+markdown says.
+
 ## Credits
 
 See **CONTRIBUTORS.md** for accepted labor with profile links. Capital and labor events stay on the public GrokForge ledger.
