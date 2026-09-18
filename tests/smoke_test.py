@@ -185,6 +185,11 @@ def test_schema_module() -> None:
     )
     rejects(mutate(quality={"clip_score": 0.5}), "snr_db", "quality without snr_db")
 
+    rejects(mutate(location="nowhere"), "location must be an object", "non-object location (no crash)")
+    rejects(mutate(**{"location.geohash_precision": True}), "geohash_precision must be an integer", "bool geohash_precision")
+    rejects(mutate(**{"location.geohash_precision": "fine"}), "geohash_precision must be an integer", "string geohash_precision")
+    rejects(mutate(**{"location.geohash_precision": 1.5}), "geohash_precision must be an integer", "float geohash_precision")
+
 
 def test_eval_harness() -> None:
     harness = load_module("echovault_eval_harness", fenced_blocks(EVAL_LEAF, "python")[0])

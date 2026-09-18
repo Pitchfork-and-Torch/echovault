@@ -180,27 +180,44 @@ def validate_record(rec: dict[str, Any]) -> list[str]:
         errs.append("record_id too short")
     if rec.get("captured_at") and not ISO_RE.match(str(rec["captured_at"])):
         errs.append("captured_at must be UTC ISO-8601 ending Z")
-    loc = rec.get("location") or {}
-    prec = int(loc.get("geohash_precision") or 0)
-    # Negative precision is not a coarse grid; treat as invalid (distinct from
-    # the precision-0 length rail and the >5 habitat leak).
-    if prec < 0:
-        errs.append("location.geohash_precision must be >= 0")
-    if prec > 5:
-        errs.append("location.geohash_precision > 5 leaks habitat; use coarse grid")
-    policy = loc.get("policy")
-    if policy not in ("coarse", "delayed", "redacted"):
-        errs.append("location.policy must be coarse|delayed|redacted")
-    gh = loc.get("geohash")
-    if gh and not GEOHASH_RE.match(str(gh)):
-        errs.append("invalid geohash")
-    # Precision 0 is falsy  -  `if gh and prec` skipped the length rail and
-    # let arbitrary-long geohashes through (habitat leak at "coarse" 0).
-    if gh and len(str(gh)) > max(0, prec):
-        errs.append("geohash longer than declared precision")
-    # redacted means no public cell; a non-empty geohash is still a habitat leak
-    if policy == "redacted" and gh:
-        errs.append("redacted location must not carry a geohash")
+    loc_raw = rec.get("location")
+    # Non-mapping location used to AttributeError on .get (fail-open crash).
+    # Distinct from policy/geohash/precision rails that assume an object.
+    if isinstance(loc_raw, dict):
+        loc = loc_raw
+        raw_prec = loc.get("geohash_precision")
+        # bool is a subclass of int; reject it and other non-ints (str/float)
+        # instead of int("fine") ValueError or int(True)==1 coercion.
+        if raw_prec is None:
+            prec = 0
+        elif type(raw_prec) is not int:
+            errs.append("location.geohash_precision must be an integer")
+            prec = 0
+        else:
+            prec = raw_prec
+        # Negative precision is not a coarse grid; treat as invalid (distinct from
+        # the precision-0 length rail and the >5 habitat leak).
+        if type(raw_prec) is int and prec < 0:
+            errs.append("location.geohash_precision must be >= 0")
+        if type(raw_prec) is int and prec > 5:
+            errs.append("location.geohash_precision > 5 leaks habitat; use coarse grid")
+        policy = loc.get("policy")
+        if policy not in ("coarse", "delayed", "redacted"):
+            errs.append("location.policy must be coarse|delayed|redacted")
+        gh = loc.get("geohash")
+        if gh and not GEOHASH_RE.match(str(gh)):
+            errs.append("invalid geohash")
+        # Precision 0 is falsy  -  `if gh and prec` skipped the length rail and
+        # let arbitrary-long geohashes through (habitat leak at "coarse" 0).
+        # Skip length check when precision itself was non-integer (already erred).
+        if (raw_prec is None or type(raw_prec) is int) and gh and len(str(gh)) > max(0, prec):
+            errs.append("geohash longer than declared precision")
+        # redacted means no public cell; a non-empty geohash is still a habitat leak
+        if policy == "redacted" and gh:
+            errs.append("redacted location must not carry a geohash")
+    elif loc_raw is not None:
+        errs.append("location must be an object")
+
     for taxon in rec.get("taxa") or []:
         conf = float(taxon.get("confidence") or 0)
         if conf > 0.85 and taxon.get("method") == "unverified_model":
