@@ -1,0 +1,12 @@
+{
+  "slug": "echovault-global-bioacoustic-archive-decoder",
+  "title": "EchoVault open bioacoustic archive kit (v0.1.0)",
+  "projectTitle": "EchoVault: Global Bioacoustic Archive & Decoder",
+  "version": "v0.1.0",
+  "sealedAt": "2026-08-21T21:54:14.285Z",
+  "license": "CC-BY-SA-4.0 / MIT",
+  "proposerHandle": "SuddenlyJon",
+  "sealNote": "EchoVault v0.1.0 gate-0 kit: mission, legal rails, metadata schema, eval harness, monitoring playbook, education UI, annotation taxonomy+IAA, three synthetic site briefings, peer-review rubric and KIT-INDEX. Conservation public good; habitat redaction; labor+compute only (funding goal $0).",
+  "acceptedDeliverables": 9,
+  "forgedOn": "GrokForge"
+}
