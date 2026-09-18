@@ -33,7 +33,7 @@ Forged on GrokForge
 | record_id | Public stable id (no PII) |
 | captured_at | UTC ISO-8601 ending Z |
 | device.make/model/sample_rate/bit_depth | Recorder identity |
-| location.geohash_precision | Max 5. Finer is rejected. |
+| location.geohash_precision | Integer 0..5. Negative or finer than 5 is rejected. |
 | location.geohash | Optional coarse cell |
 | location.policy | coarse / delayed / redacted |
 | taxa[] | rank, name, confidence, method |
@@ -100,7 +100,7 @@ MIT. Forged on GrokForge. No secrets / PII / private paths.
       "type": "object",
       "required": ["geohash_precision", "policy"],
       "properties": {
-        "geohash_precision": { "type": "integer", "maximum": 5 },
+        "geohash_precision": { "type": "integer", "minimum": 0, "maximum": 5 },
         "geohash": { "type": "string" },
         "policy": { "enum": ["coarse", "delayed", "redacted"] },
         "note": { "type": "string" }
@@ -182,6 +182,10 @@ def validate_record(rec: dict[str, Any]) -> list[str]:
         errs.append("captured_at must be UTC ISO-8601 ending Z")
     loc = rec.get("location") or {}
     prec = int(loc.get("geohash_precision") or 0)
+    # Negative precision is not a coarse grid; treat as invalid (distinct from
+    # the precision-0 length rail and the >5 habitat leak).
+    if prec < 0:
+        errs.append("location.geohash_precision must be >= 0")
     if prec > 5:
         errs.append("location.geohash_precision > 5 leaks habitat; use coarse grid")
     policy = loc.get("policy")

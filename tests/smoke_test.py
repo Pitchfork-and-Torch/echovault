@@ -86,6 +86,7 @@ def test_json_schemas() -> None:
     check(required == documented, "metadata schema required keys match SCHEMA.md")
     loc = meta["properties"]["location"]["properties"]
     check(loc["geohash_precision"].get("maximum") == 5, "metadata schema caps geohash_precision at 5")
+    check(loc["geohash_precision"].get("minimum") == 0, "metadata schema floors geohash_precision at 0")
     check(set(loc["policy"]["enum"]) == {"coarse", "delayed", "redacted"}, "metadata schema location.policy enum")
 
     metrics = json.loads(fenced_blocks(EVAL_LEAF, "json")[0])
@@ -134,6 +135,11 @@ def test_schema_module() -> None:
     check(len([e for e in empty_errs if e.startswith("missing ")]) == len(schema.REQUIRED), "empty record reports every missing key")
 
     rejects(mutate(**{"location.geohash_precision": 6}), "geohash_precision > 5", "geohash_precision 6 (habitat leak)")
+    rejects(mutate(**{"location.geohash_precision": -1}), "geohash_precision must be >= 0", "negative geohash_precision")
+    check(
+        not any("geohash_precision" in e for e in schema.validate_record(mutate(**{"location.geohash_precision": 0, "location.geohash": ""}))),
+        "precision 0 with empty geohash still passes",
+    )
     rejects(mutate(**{"location.geohash": "dn6k9"}), "longer than declared precision", "geohash finer than declared precision")
     rejects(mutate(**{"location.geohash": "dn6a"}), "invalid geohash", "geohash with non-base32 char")
     rejects(mutate(**{"location.policy": "exact"}), "location.policy", "unknown location.policy")
