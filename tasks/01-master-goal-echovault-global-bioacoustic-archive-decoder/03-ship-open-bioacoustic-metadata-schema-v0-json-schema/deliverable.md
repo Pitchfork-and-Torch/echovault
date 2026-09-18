@@ -224,10 +224,25 @@ def validate_record(rec: dict[str, Any]) -> list[str]:
             errs.append("overconfident unverified taxon")
         if not taxon.get("name"):
             errs.append("taxon missing name")
-    q = rec.get("quality") or {}
-    if "snr_db" not in q:
-        errs.append("quality.snr_db required")
-    consent = rec.get("consent") or {}
+    # Non-mapping quality used to TypeError on `in` (fail-open crash).
+    # Distinct from the snr_db presence rail that assumes an object.
+    q_raw = rec.get("quality")
+    if isinstance(q_raw, dict) or q_raw is None:
+        q = q_raw or {}
+        if "snr_db" not in q:
+            errs.append("quality.snr_db required")
+    else:
+        errs.append("quality must be an object")
+    # Non-mapping consent used to AttributeError on .get (fail-open crash).
+    # Distinct from location non-object (#11) and embargo ISO rails.
+    consent_raw = rec.get("consent")
+    if isinstance(consent_raw, dict):
+        consent = consent_raw
+    elif consent_raw is not None:
+        errs.append("consent must be an object")
+        consent = {}
+    else:
+        consent = {}
     embargo = consent.get("embargo_until")
     # Non-empty embargo_until must be UTC ISO-8601 ending Z (same rail as
     # captured_at). A free-text token like "later" used to satisfy the
