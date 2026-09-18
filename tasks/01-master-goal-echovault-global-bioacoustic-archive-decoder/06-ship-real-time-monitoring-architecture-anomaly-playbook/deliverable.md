@@ -192,10 +192,17 @@ class Monitor:
             fire("silence_outage", 1.0, "energy near floor")
         if w.clip_frac > 0.2:
             fire("clip_saturation", w.clip_frac, "adc clips")
-        # Compare to the previous interval, not absolute time.
+        # Compare to the previous *positive* interval, not absolute time.
         # `_last_t and 1.0` always collapsed to 1.0 after t advanced, so a
         # stream with nominal dt!=1.0 missed or false-fired jumps.
-        if self._i > 1 and w.clock_dt > 2.5 * max(1e-6, self._last_dt):
+        # Non-positive clock_dt must not poison `_last_dt`: a zero/negative
+        # sample made `2.5 * max(1e-6, prior)` tiny and false-fired the next
+        # normal 1.0s tick as clock_jump (distinct from prior-interval fix).
+        if (
+            self._i > 1
+            and w.clock_dt > 0
+            and w.clock_dt > 2.5 * max(1e-6, self._last_dt)
+        ):
             fire("clock_jump", w.clock_dt, "timestamp gap")
         if w.energy == w.low_band == w.high_band and self._i > 1:
             fire("sensor_flatline", 1.0, "identical bands")
@@ -207,7 +214,8 @@ class Monitor:
             fire("rain_like_broadband", (w.low_band + w.high_band) / 2, "flat spectrum")
         if abs(ze) > self.z_thresh and abs(zh) > self.z_thresh and abs(zn) > self.z_thresh:
             fire("unknown_novel_cluster", max(abs(ze), abs(zh), abs(zn)), "joint outlier")
-        self._last_dt = w.clock_dt
+        if w.clock_dt > 0:
+            self._last_dt = w.clock_dt
         return alerts
 
 

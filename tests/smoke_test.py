@@ -236,6 +236,15 @@ def test_monitor() -> None:
     silence_hits = [a for i in range(1, 8) for a in mon_cool.push(silent(i)) if a.cls == "silence_outage"]
     check(len(silence_hits) == 2, f"cooldown of 5 allows silence_outage twice in 7 windows ({len(silence_hits)})")
 
+    # Non-positive clock_dt must not poison the prior interval.
+    mon_dt = monitor.Monitor(cooldown=0, min_windows=0)
+    for i in range(10):
+        mon_dt.push(monitor.Window(t=float(i), energy=1.0, low_band=0.5, high_band=0.5, entropy=1.0, clip_frac=0.0, clock_dt=1.0))
+    mon_dt.push(monitor.Window(t=10.0, energy=1.0, low_band=0.5, high_band=0.5, entropy=1.0, clip_frac=0.0, clock_dt=-2.0))
+    after = mon_dt.push(monitor.Window(t=11.0, energy=1.0, low_band=0.5, high_band=0.5, entropy=1.0, clip_frac=0.0, clock_dt=1.0))
+    check(not any(a.cls == "clock_jump" for a in after), "non-positive clock_dt must not false-fire next clock_jump")
+    check(mon_dt._last_dt == 1.0, "prior dt stays last positive interval after non-positive sample")
+
 
 def main() -> int:
     test_all_json_blocks_parse()
