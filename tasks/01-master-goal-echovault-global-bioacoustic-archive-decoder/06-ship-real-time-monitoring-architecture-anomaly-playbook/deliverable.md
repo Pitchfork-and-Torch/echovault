@@ -196,8 +196,8 @@ class Monitor:
             fire("clock_jump", w.clock_dt, "timestamp gap")
         if w.energy == w.low_band == w.high_band and self._i > 1:
             fire("sensor_flatline", 1.0, "identical bands")
-        if ze > self.z_thresh and w.high_band > w.low_band:
-            fire("anthrophony_spike", ze, "high-band energy z")
+        if zh > self.z_thresh and w.high_band > w.low_band:
+            fire("anthrophony_spike", zh, "high-band energy z")
         if zn < -self.z_thresh and w.energy > 0.05:
             fire("biodiversity_proxy_drop", -zn, "entropy collapse")
         if w.low_band > 0.6 and w.high_band > 0.6:
