@@ -203,7 +203,10 @@ def validate_record(rec: dict[str, Any]) -> list[str]:
         errs.append("quality.snr_db required")
     consent = rec.get("consent") or {}
     if consent.get("indigenous_flag") and not consent.get("community_ok"):
-        errs.append("indigenous_flag requires community_ok or embargo")
+        # Error text promises community_ok OR embargo; honor embargo_until.
+        embargo = consent.get("embargo_until")
+        if not (isinstance(embargo, str) and embargo.strip()):
+            errs.append("indigenous_flag requires community_ok or embargo")
     ch = rec.get("checksums") or {}
     if not re.match(r"^[0-9a-f]{64}$", str(ch.get("sha256") or "")):
         errs.append("checksums.sha256 must be 64 hex")

@@ -146,7 +146,9 @@ def test_schema_module() -> None:
         "overconfident unverified model taxon",
     )
     rejects(mutate(taxa=[{"rank": "class", "confidence": 0.5, "method": "human"}]), "taxon missing name", "taxon without name")
-    rejects(mutate(**{"consent.indigenous_flag": True, "consent.community_ok": False}), "indigenous_flag", "indigenous_flag without community_ok")
+    rejects(mutate(**{"consent.indigenous_flag": True, "consent.community_ok": False}), "indigenous_flag", "indigenous_flag without community_ok or embargo")
+    embargo_ok = mutate(**{"consent.indigenous_flag": True, "consent.community_ok": False, "consent.embargo_until": "2027-01-01T00:00:00Z"})
+    check(not any("indigenous_flag" in e for e in schema.validate_record(embargo_ok)), "indigenous_flag + embargo_until passes without community_ok")
     rejects(mutate(quality={"clip_score": 0.5}), "snr_db", "quality without snr_db")
 
 
