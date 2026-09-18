@@ -190,7 +190,9 @@ def validate_record(rec: dict[str, Any]) -> list[str]:
     gh = loc.get("geohash")
     if gh and not GEOHASH_RE.match(str(gh)):
         errs.append("invalid geohash")
-    if gh and prec and len(str(gh)) > prec:
+    # Precision 0 is falsy — `if gh and prec` skipped the length rail and
+    # let arbitrary-long geohashes through (habitat leak at "coarse" 0).
+    if gh and len(str(gh)) > max(0, prec):
         errs.append("geohash longer than declared precision")
     for taxon in rec.get("taxa") or []:
         conf = float(taxon.get("confidence") or 0)

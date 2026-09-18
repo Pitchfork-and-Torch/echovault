@@ -149,6 +149,15 @@ def test_schema_module() -> None:
     rejects(mutate(**{"consent.indigenous_flag": True, "consent.community_ok": False}), "indigenous_flag", "indigenous_flag without community_ok or embargo")
     embargo_ok = mutate(**{"consent.indigenous_flag": True, "consent.community_ok": False, "consent.embargo_until": "2027-01-01T00:00:00Z"})
     check(not any("indigenous_flag" in e for e in schema.validate_record(embargo_ok)), "indigenous_flag + embargo_until passes without community_ok")
+    rejects(
+        mutate(**{"location.geohash_precision": 0, "location.geohash": "dn6kqqqqqq"}),
+        "geohash longer",
+        "precision 0 must still reject overlong geohash",
+    )
+    check(
+        not any("geohash longer" in e for e in schema.validate_record(mutate(**{"location.geohash_precision": 4, "location.geohash": "dn6k"}))),
+        "precision 4 accepts matching-length geohash",
+    )
     rejects(mutate(quality={"clip_score": 0.5}), "snr_db", "quality without snr_db")
 
 
