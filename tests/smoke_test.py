@@ -158,6 +158,15 @@ def test_schema_module() -> None:
         not any("geohash longer" in e for e in schema.validate_record(mutate(**{"location.geohash_precision": 4, "location.geohash": "dn6k"}))),
         "precision 4 accepts matching-length geohash",
     )
+    rejects(
+        mutate(**{"location.policy": "redacted", "location.geohash": "dn6k"}),
+        "redacted location must not carry",
+        "redacted policy with geohash (habitat leak)",
+    )
+    check(
+        not any("redacted" in e for e in schema.validate_record(mutate(**{"location.policy": "redacted", "location.geohash": ""}))),
+        "redacted with empty geohash passes",
+    )
     rejects(mutate(quality={"clip_score": 0.5}), "snr_db", "quality without snr_db")
 
 

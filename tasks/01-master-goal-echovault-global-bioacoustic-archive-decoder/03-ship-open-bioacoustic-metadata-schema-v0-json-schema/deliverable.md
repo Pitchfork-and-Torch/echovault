@@ -194,6 +194,9 @@ def validate_record(rec: dict[str, Any]) -> list[str]:
     # let arbitrary-long geohashes through (habitat leak at "coarse" 0).
     if gh and len(str(gh)) > max(0, prec):
         errs.append("geohash longer than declared precision")
+    # redacted means no public cell; a non-empty geohash is still a habitat leak
+    if policy == "redacted" and gh:
+        errs.append("redacted location must not carry a geohash")
     for taxon in rec.get("taxa") or []:
         conf = float(taxon.get("confidence") or 0)
         if conf > 0.85 and taxon.get("method") == "unverified_model":
