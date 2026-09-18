@@ -40,7 +40,7 @@ Forged on GrokForge
 | behavior_tags[] | free tags (dawn-chorus, anthrophony, ...) |
 | quality.snr_db | Required quality proxy |
 | license | Record license |
-| consent.community_ok / indigenous_flag / embargo_until | Access rails |
+| consent.community_ok / indigenous_flag / embargo_until | Access rails. embargo_until when set must be UTC ISO-8601 ending Z. |
 | checksums.sha256 / duration_s | Integrity |
 | audio_ref | Pointer, not raw bytes |
 
@@ -211,10 +211,16 @@ def validate_record(rec: dict[str, Any]) -> list[str]:
     if "snr_db" not in q:
         errs.append("quality.snr_db required")
     consent = rec.get("consent") or {}
+    embargo = consent.get("embargo_until")
+    # Non-empty embargo_until must be UTC ISO-8601 ending Z (same rail as
+    # captured_at). A free-text token like "later" used to satisfy the
+    # indigenous consent check without naming a real release date.
+    if isinstance(embargo, str) and embargo.strip() and not ISO_RE.match(embargo):
+        errs.append("consent.embargo_until must be UTC ISO-8601 ending Z")
     if consent.get("indigenous_flag") and not consent.get("community_ok"):
         # Error text promises community_ok OR embargo; honor embargo_until.
-        embargo = consent.get("embargo_until")
-        if not (isinstance(embargo, str) and embargo.strip()):
+        # Embargo only counts when it is a real UTC timestamp (≠ presence-only).
+        if not (isinstance(embargo, str) and ISO_RE.match(embargo)):
             errs.append("indigenous_flag requires community_ok or embargo")
     ch = rec.get("checksums") or {}
     if not re.match(r"^[0-9a-f]{64}$", str(ch.get("sha256") or "")):
