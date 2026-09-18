@@ -218,7 +218,20 @@ def validate_record(rec: dict[str, Any]) -> list[str]:
     elif loc_raw is not None:
         errs.append("location must be an object")
 
-    for taxon in rec.get("taxa") or []:
+    # Non-list taxa used to AttributeError on item.get (fail-open crash when
+    # taxa was a str/dict). Distinct from location/consent/quality object rails.
+    taxa_raw = rec.get("taxa")
+    if taxa_raw is None:
+        taxa_list: list = []
+    elif isinstance(taxa_raw, list):
+        taxa_list = taxa_raw
+    else:
+        errs.append("taxa must be a list")
+        taxa_list = []
+    for taxon in taxa_list:
+        if not isinstance(taxon, dict):
+            errs.append("taxon must be an object")
+            continue
         conf = float(taxon.get("confidence") or 0)
         if conf > 0.85 and taxon.get("method") == "unverified_model":
             errs.append("overconfident unverified taxon")
@@ -254,9 +267,15 @@ def validate_record(rec: dict[str, Any]) -> list[str]:
         # Embargo only counts when it is a real UTC timestamp (≠ presence-only).
         if not (isinstance(embargo, str) and ISO_RE.match(embargo)):
             errs.append("indigenous_flag requires community_ok or embargo")
-    ch = rec.get("checksums") or {}
-    if not re.match(r"^[0-9a-f]{64}$", str(ch.get("sha256") or "")):
-        errs.append("checksums.sha256 must be 64 hex")
+    # Non-mapping checksums used to AttributeError on .get (fail-open crash).
+    # Distinct from taxa list rail and consent/quality object rails.
+    ch_raw = rec.get("checksums")
+    if isinstance(ch_raw, dict) or ch_raw is None:
+        ch = ch_raw or {}
+        if not re.match(r"^[0-9a-f]{64}$", str(ch.get("sha256") or "")):
+            errs.append("checksums.sha256 must be 64 hex")
+    else:
+        errs.append("checksums must be an object")
     return errs
 
 
