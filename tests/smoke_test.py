@@ -193,8 +193,9 @@ def test_monitor() -> None:
         alerts.extend(mon.push(w))
     fired = {a.cls for a in alerts}
     injected = {"anthrophony_spike", "biodiversity_proxy_drop", "silence_outage", "clock_jump"}
-    check(len(fired & injected) >= 3, f"monitor fires at least 3 of 4 injected classes ({sorted(fired)})")
+    check(len(fired & injected) == 4, f"monitor fires all 4 injected classes ({sorted(fired)})")
     check(fired <= set(monitor.ANOMALY_CLASSES), "every alert class is in the catalog")
+    check("anthrophony_spike" in fired, "anthrophony_spike fires on the high-band energy jump")
     check("silence_outage" in fired, "silence_outage fires on the energy floor")
     check("clock_jump" in fired, "clock_jump fires on the timestamp gap")
     check("biodiversity_proxy_drop" in fired, "biodiversity_proxy_drop fires on entropy collapse")

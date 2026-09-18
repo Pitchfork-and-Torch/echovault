@@ -149,10 +149,13 @@ class EwmaZ:
             self.mean = x
             return 0.0
         prev = self.mean
+        # Score against the previous mean/var, then fold x in. Updating first
+        # dampens spikes (anthrophony at t=40 fell to ~2.2 vs threshold 3.0).
+        sd = math.sqrt(max(1e-6, self.var))
+        z = (x - prev) / sd
         self.mean = self.alpha * x + (1 - self.alpha) * self.mean
         self.var = self.alpha * (x - prev) ** 2 + (1 - self.alpha) * self.var
-        sd = math.sqrt(max(1e-6, self.var))
-        return (x - self.mean) / sd
+        return z
 
 
 class Monitor:
